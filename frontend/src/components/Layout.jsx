@@ -191,7 +191,7 @@ function Layout({ activeTab, setActiveTab, currentUser, setCurrentUser, theme, s
         </header>
 
         {/* Scrollable Container */}
-        <main className="flex-1 overflow-hidden p-6 bg-background transition-colors duration-200">
+        <main className="flex-1 overflow-hidden p-2.5 bg-background transition-colors duration-200">
           <div className="w-full h-full flex flex-col">
             {children}
           </div>
