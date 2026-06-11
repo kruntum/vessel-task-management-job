@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useReactTable, getCoreRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table';
-import { Search, Filter, Plus, Calendar, AlertTriangle, Clock, RefreshCw, Layers, CheckCircle2, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Search, Filter, Plus, Calendar, AlertTriangle, Clock, RefreshCw, Layers, CheckCircle2, ChevronLeft, ChevronRight, ChevronDown, Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 function MasterScheduleList({ currentUser }) {
@@ -72,71 +72,97 @@ function MasterScheduleList({ currentUser }) {
     return { label: 'ON TIME', color: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20', days: 0 };
   };
 
+  const formatDate = (dateVal) => {
+    if (!dateVal) return '—';
+    return new Date(dateVal).toLocaleDateString('en-GB');
+  };
+
   // TanStack Table columns config memoized to prevent infinite recalculation loops
   const columns = React.useMemo(
     () => [
       {
-        header: 'Vessel / Voyage',
-        accessorFn: (row) => `${row.vessel?.vesselName || ''} / ${row.voyage}`,
+        header: 'Vessel Info',
         cell: ({ row }) => (
-          <div>
-            <div className="font-semibold text-foreground">{row.original.vessel?.vesselName}</div>
-            <div className="text-xs text-muted-foreground">Voyage: {row.original.voyage} | Service: {row.original.service}</div>
+          <div className="space-y-0.5">
+            <div className="font-semibold text-foreground text-xs sm:text-sm">{row.original.vessel?.vesselName || '—'}</div>
+            <div className="text-[10px] text-muted-foreground font-mono">
+              Voyage: {row.original.voyage} | Service: {row.original.service}
+            </div>
           </div>
         ),
       },
       {
         header: 'Agent',
         accessorKey: 'agent.agentName',
-        cell: ({ getValue }) => <span className="font-medium text-foreground">{getValue()}</span>,
+        cell: ({ getValue }) => <span className="font-medium text-foreground">{getValue() || '—'}</span>,
       },
       {
-        header: 'Week No',
+        header: 'Week',
         accessorKey: 'weekNo',
         cell: ({ getValue }) => <span className="text-foreground text-center block font-mono">{getValue()}</span>,
       },
       {
-        header: 'Dates',
-        cell: ({ row }) => {
-          const etd = new Date(row.original.originalEtd).toLocaleDateString('en-GB');
-          const dpr = row.original.actualDpr 
-            ? new Date(row.original.actualDpr).toLocaleDateString('en-GB') 
-            : '—';
-          return (
-            <div className="space-y-0.5 text-xs font-mono">
-              <div><span className="text-muted-foreground/60 mr-2">ETD:</span><span className="text-foreground">{etd}</span></div>
-              <div><span className="text-muted-foreground/60 mr-2">DPR:</span><span className="text-foreground">{dpr}</span></div>
+        header: 'POD / Return Place',
+        cell: ({ row }) => (
+          <div className="space-y-0.5 text-xs">
+            <div>
+              <span className="text-muted-foreground/60 mr-1.5">POD:</span>
+              <span className="text-foreground font-medium">{row.original.pod?.name || '—'}</span>
             </div>
-          );
-        },
+            <div>
+              <span className="text-muted-foreground/60 mr-1.5">Return:</span>
+              <span className="text-foreground font-medium">{row.original.returnPlace?.placeName || '—'}</span>
+            </div>
+          </div>
+        ),
       },
       {
-        header: 'Status',
+        header: 'Dates & Status',
         cell: ({ row }) => {
+          const etd = formatDate(row.original.originalEtd);
+          const dpr = formatDate(row.original.actualDpr);
           const status = getDelayStatus(row.original.originalEtd, row.original.actualDpr);
           return (
-            <div className="flex flex-col items-start gap-1">
-              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${status.color}`}>
-                {status.label}
-              </span>
-              {status.days > 0 && (
-                <span className="text-[10px] text-rose-400 font-mono">+{status.days} Day(s)</span>
-              )}
-              {status.days < 0 && (
-                <span className="text-[10px] text-emerald-400 font-mono">-{status.days} Day(s)</span>
-              )}
+            <div className="flex items-center gap-3">
+              <div className="space-y-0.5 text-xs font-mono">
+                <div><span className="text-muted-foreground/60 mr-1.5">ETD:</span><span className="text-foreground">{etd}</span></div>
+                <div><span className="text-muted-foreground/60 mr-1.5">DPR:</span><span className="text-foreground">{dpr}</span></div>
+              </div>
+              <div className="flex flex-col items-start">
+                <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${status.color}`}>
+                  {status.label}
+                </span>
+                {status.days > 0 && (
+                  <span className="text-[9px] text-rose-500 font-mono mt-0.5">+{status.days} d</span>
+                )}
+                {status.days < 0 && (
+                  <span className="text-[9px] text-emerald-500 font-mono mt-0.5">-{Math.abs(status.days)} d</span>
+                )}
+              </div>
             </div>
           );
         },
       },
       {
-        header: 'Closing Time',
+        header: 'Closing & Gate',
         cell: ({ row }) => {
-          const closeDate = new Date(row.original.closingDate).toLocaleDateString('en-GB');
+          const closing = formatDate(row.original.closingDate);
+          const open = formatDate(row.original.openGate);
+          const free = formatDate(row.original.freeTimeStart);
           return (
-            <div className="text-xs font-mono">
-              <div className="text-foreground">{closeDate}</div>
-              <div className="text-muted-foreground">{row.original.closingTime}</div>
+            <div className="space-y-0.5 text-xs font-mono">
+              <div>
+                <span className="text-muted-foreground/60 mr-1.5">Closing:</span>
+                <span className="text-foreground">{closing} {row.original.closingTime}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground/60 mr-1.5">Gate Open:</span>
+                <span className="text-foreground">{open}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground/60 mr-1.5">Free Time:</span>
+                <span className="text-foreground">{free}</span>
+              </div>
             </div>
           );
         },
@@ -144,12 +170,11 @@ function MasterScheduleList({ currentUser }) {
       {
         header: 'Actions',
         cell: ({ row }) => {
-          const schedId = row.original.id;
           const hasJob = row.original.jobCards && row.original.jobCards.length > 0;
 
           if (hasJob) {
             return (
-              <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-medium">
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-medium">
                 <CheckCircle2 className="h-4 w-4" /> Assigned
               </span>
             );
@@ -163,7 +188,7 @@ function MasterScheduleList({ currentUser }) {
                   setChecklistItems([{ agentId: row.original.agentId.toString(), customerName: '', bookingNo: '', setsCount: 1 }]);
                   setIsModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 rounded bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors shadow-sm cursor-pointer"
               >
                 <Plus className="h-3.5 w-3.5" /> Job Card
               </button>
@@ -187,6 +212,83 @@ function MasterScheduleList({ currentUser }) {
       return true;
     });
   }, [schedules, globalFilter, agentFilter, weekFilter]);
+
+  // Escape special characters for CSV
+  const escapeCsvValue = (val) => {
+    if (val === null || val === undefined) return '""';
+    const stringVal = String(val);
+    return `"${stringVal.replace(/"/g, '""')}"`;
+  };
+
+  // Export to Excel (CSV with UTF-8 BOM) matching the 13 columns exactly
+  const handleExportExcel = () => {
+    const headers = [
+      'สายเรือ / Agent',
+      'โค้ด / Service',
+      'ชื่อเรือ / Vessel',
+      'เที่ยวเรือ / Voyage',
+      'ท่าเรือปลายทาง / POD',
+      'วันเรือออก / Original ETD',
+      'ล่าช้าก่อน / Delay/Early',
+      'วันเรือออก / Actual DPR',
+      'วันคืนตู้ / Closing Date',
+      'เวลาคืนตู้ / Closing time',
+      'เกทเปิด / Open gate',
+      'คืนตู้วันแรกไม่มีค่าใช้จ่าย',
+      'ท่าคืนตู้ / Return place'
+    ];
+
+    const getDelayText = (originalEtd, actualDpr) => {
+      if (!actualDpr) return 'PENDING';
+      const etd = new Date(originalEtd);
+      const dpr = new Date(actualDpr);
+      const etdDate = new Date(etd.getFullYear(), etd.getMonth(), etd.getDate());
+      const dprDate = new Date(dpr.getFullYear(), dpr.getMonth(), dpr.getDate());
+      const diffTime = dprDate - etdDate;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays > 0) return `DELAY (+${diffDays} วัน)`;
+      if (diffDays < 0) return `EARLY (-${Math.abs(diffDays)} วัน)`;
+      return 'ON TIME';
+    };
+
+    const formatDateVal = (dateVal) => {
+      if (!dateVal) return '';
+      return new Date(dateVal).toLocaleDateString('en-GB');
+    };
+
+    const csvRows = filteredData.map((row) => {
+      return [
+        row.agent?.agentName || '',
+        row.service || '',
+        row.vessel?.vesselName || '',
+        row.voyage || '',
+        row.pod?.name || '',
+        formatDateVal(row.originalEtd),
+        getDelayText(row.originalEtd, row.actualDpr),
+        formatDateVal(row.actualDpr),
+        formatDateVal(row.closingDate),
+        row.closingTime || '',
+        formatDateVal(row.openGate),
+        formatDateVal(row.freeTimeStart),
+        row.returnPlace?.placeName || '',
+      ];
+    });
+
+    const csvContent = "\uFEFF" + [
+      headers.join(','),
+      ...csvRows.map(rowCols => rowCols.map(escapeCsvValue).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Vessel_Schedule_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Reset page index when filters change
   useEffect(() => {
@@ -318,12 +420,20 @@ function MasterScheduleList({ currentUser }) {
             </div>
           </div>
           
-          <button 
-            onClick={fetchSchedules}
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={handleExportExcel}
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-indigo-200 dark:border-indigo-500/20 bg-indigo-500/10 dark:bg-indigo-500/20 px-3 py-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 dark:hover:bg-indigo-500/30 transition-colors cursor-pointer"
+            >
+              <Download className="h-4 w-4" /> Export Excel
+            </button>
+            <button 
+              onClick={fetchSchedules}
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+            </button>
+          </div>
         </div>
       </div>
 
