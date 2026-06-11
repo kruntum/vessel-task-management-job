@@ -334,7 +334,7 @@ function MasterScheduleList({ currentUser }) {
             <thead>
               <tr className="sticky top-0 z-10 border-b border-border shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.02)]">
                 {columns.map((col, index) => (
-                  <th key={index} className="px-6 py-4 bg-muted/95 text-xs font-semibold uppercase tracking-wider text-muted-foreground align-middle">{col.header}</th>
+                  <th key={index} className="px-6 py-2 bg-muted/95 text-xs font-semibold uppercase tracking-wider text-muted-foreground align-middle">{col.header}</th>
                 ))}
               </tr>
             </thead>
@@ -356,7 +356,7 @@ function MasterScheduleList({ currentUser }) {
                 table.getRowModel().rows.map((row) => (
                   <tr key={row.id} className="hover:bg-muted/30 transition-colors">
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-6 py-6 align-middle text-sm text-foreground">
+                      <td key={cell.id} className="px-6 py-1.5 align-middle text-sm text-foreground">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
