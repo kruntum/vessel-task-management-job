@@ -183,8 +183,8 @@ function Layout({ activeTab, setActiveTab, currentUser, setCurrentUser, theme, s
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
 
-            <div className="flex items-center gap-1.5 rounded-full bg-indigo-950/40 border border-indigo-500/20 px-3 py-1 text-xs text-indigo-400">
-              <span className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
+            <div className="flex items-center gap-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-500/20 px-3 py-1 text-xs text-indigo-600 dark:text-indigo-400">
+              <span className="h-2 w-2 rounded-full bg-indigo-500 dark:bg-indigo-400 animate-pulse" />
               Mode: <span className="font-semibold">{currentUser?.role}</span>
             </div>
           </div>
