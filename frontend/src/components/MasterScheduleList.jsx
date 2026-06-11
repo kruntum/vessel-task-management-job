@@ -27,6 +27,13 @@ function MasterScheduleList({ currentUser }) {
   const [creatingJob, setCreatingJob] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Reassign / Revert Job Card states
+  const [staffList, setStaffList] = useState([]);
+  const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
+  const [selectedReassignJob, setSelectedReassignJob] = useState(null);
+  const [selectedStaffId, setSelectedStaffId] = useState('');
+  const [reassigning, setReassigning] = useState(false);
+
   const fetchSchedules = () => {
     setLoading(true);
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5550'}/api/schedules`)
@@ -48,6 +55,15 @@ function MasterScheduleList({ currentUser }) {
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5550'}/api/master/agents`)
       .then((res) => res.json())
       .then((data) => setAgents(data))
+      .catch((err) => console.error(err));
+
+    // Fetch active users and filter by STAFF role for reassign
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5550'}/api/auth/users`)
+      .then((res) => res.json())
+      .then((data) => {
+        const staff = data.filter((u) => u.role === 'STAFF');
+        setStaffList(staff);
+      })
       .catch((err) => console.error(err));
   }, []);
 
@@ -180,9 +196,40 @@ function MasterScheduleList({ currentUser }) {
           const hasJob = row.original.jobCards && row.original.jobCards.length > 0;
 
           if (hasJob) {
+            const jobCard = row.original.jobCards[0];
+            const assignedStaffName = jobCard.user?.name || 'Unknown';
+
+            if (currentUser && ['ADMIN', 'SUPERVISOR'].includes(currentUser.role)) {
+              return (
+                <div className="flex flex-col gap-1 items-start min-w-[110px]">
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-0.5 leading-none mb-0.5">
+                    <CheckCircle2 className="h-3 w-3 shrink-0" /> {assignedStaffName}
+                  </span>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => {
+                        setSelectedReassignJob({ jobId: jobCard.id, currentUserId: jobCard.userId });
+                        setSelectedStaffId(jobCard.userId.toString());
+                        setIsReassignModalOpen(true);
+                      }}
+                      className="px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/20 bg-indigo-500/10 dark:bg-indigo-500/20 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 transition-colors cursor-pointer"
+                    >
+                      ย้ายงาน
+                    </button>
+                    <button
+                      onClick={() => handleRevertJobCard(jobCard.id)}
+                      className="px-1.5 py-0.5 rounded border border-rose-200 dark:border-rose-500/20 bg-rose-500/10 dark:bg-rose-500/20 text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                    >
+                      ย้อนสถานะ
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
             return (
-              <span className="inline-flex items-center gap-1 text-xs text-emerald-500 font-medium">
-                <CheckCircle2 className="h-4 w-4" /> Assigned
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                <CheckCircle2 className="h-3.5 w-3.5" /> {assignedStaffName}
               </span>
             );
           }
@@ -379,6 +426,59 @@ function MasterScheduleList({ currentUser }) {
         setErrorMsg(err.message);
         toast.error(`Error: ${err.message}`);
         setCreatingJob(false);
+      });
+  };
+
+  const handleRevertJobCard = (jobId) => {
+    if (!window.confirm('คุณต้องการย้อนสถานะ (ยกเลิกมอบหมายงาน) สำหรับรายการนี้ใช่หรือไม่?')) {
+      return;
+    }
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5550'}/api/jobs/${jobId}`, {
+      method: 'DELETE',
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to revert Job Card');
+        return data;
+      })
+      .then(() => {
+        toast.success('ย้อนสถานะการมอบหมายงานเรียบร้อยแล้ว!');
+        fetchSchedules(); // Reload data table
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error(`เกิดข้อผิดพลาด: ${err.message}`);
+      });
+  };
+
+  const handleReassignSubmit = (e) => {
+    e.preventDefault();
+    if (!selectedStaffId) {
+      toast.error('กรุณาเลือกเจ้าหน้าที่ผู้รับผิดชอบ');
+      return;
+    }
+    setReassigning(true);
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5550'}/api/jobs/${selectedReassignJob.jobId}/reassign`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: parseInt(selectedStaffId) }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to reassign Job Card');
+        return data;
+      })
+      .then((data) => {
+        toast.success(`ย้ายงานไปยัง ${data.user?.name || 'Staff'} เรียบร้อยแล้ว!`);
+        setIsReassignModalOpen(false);
+        setSelectedReassignJob(null);
+        setReassigning(false);
+        fetchSchedules(); // Reload data table
+      })
+      .catch((err) => {
+        console.error(err);
+        toast.error(`เกิดข้อผิดพลาด: ${err.message}`);
+        setReassigning(false);
       });
   };
 
@@ -691,6 +791,70 @@ function MasterScheduleList({ currentUser }) {
                 >
                   {creatingJob ? <RefreshCw className="h-4 w-4 animate-spin" /> : null}
                   {creatingJob ? 'Assigning...' : 'Assign Work (Auto-Balance)'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Supervisor: Reassign Job Modal */}
+      {isReassignModalOpen && selectedReassignJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-2xl text-foreground">
+            <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+              <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Layers className="h-5 w-5 text-indigo-500" /> ย้ายงาน (เปลี่ยนผู้รับผิดชอบ)
+              </h3>
+              <button 
+                onClick={() => {
+                  setIsReassignModalOpen(false);
+                  setSelectedReassignJob(null);
+                }}
+                className="text-muted-foreground hover:text-foreground text-xl"
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleReassignSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1.5">
+                  เลือกเจ้าหน้าที่ผู้รับผิดชอบงานคนใหม่
+                </label>
+                <select
+                  value={selectedStaffId}
+                  onChange={(e) => setSelectedStaffId(e.target.value)}
+                  className="w-full rounded-md border border-input bg-background py-2 px-3 text-sm text-foreground outline-none focus:border-primary/50 cursor-pointer"
+                >
+                  <option value="">เลือกเจ้าหน้าที่...</option>
+                  {staffList.map((staff) => (
+                    <option key={staff.id} value={staff.id}>
+                      {staff.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex justify-end gap-3 border-t border-border pt-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsReassignModalOpen(false);
+                    setSelectedReassignJob(null);
+                  }}
+                  className="rounded bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground hover:bg-secondary/80 transition-colors cursor-pointer"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={reassigning}
+                  className="rounded bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:opacity-50 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  {reassigning ? <RefreshCw className="h-4 w-4 animate-spin" /> : null}
+                  {reassigning ? 'กำลังบันทึก...' : 'ย้ายงาน'}
                 </button>
               </div>
             </form>

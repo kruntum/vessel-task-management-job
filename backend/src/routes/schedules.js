@@ -12,6 +12,11 @@ router.get('/', async (req, res, next) => {
         returnPlace: true,
         pod: true,
         pol: true,
+        jobCards: {
+          include: {
+            user: true,
+          },
+        },
       },
       orderBy: { originalEtd: 'asc' },
     });
@@ -54,6 +59,11 @@ router.get('/:id', async (req, res, next) => {
         returnPlace: true,
         pod: true,
         pol: true,
+        jobCards: {
+          include: {
+            user: true,
+          },
+        },
       },
     });
     if (!schedule) {
