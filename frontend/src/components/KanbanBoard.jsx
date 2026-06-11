@@ -182,9 +182,9 @@ function KanbanBoard({ currentUser }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex-1 flex flex-col overflow-hidden h-full">
       {/* Header and Sync info */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
         <div>
           <p className="text-muted-foreground text-sm">
             Manage your vessel tasks and checklist items. Drag cards to update statuses.
@@ -199,20 +199,20 @@ function KanbanBoard({ currentUser }) {
       </div>
 
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+        <div className="flex flex-col items-center justify-center py-24 text-muted-foreground flex-1">
           <RefreshCw className="h-8 w-8 animate-spin text-indigo-500 mb-2" />
           Loading Tasks Kanban...
         </div>
       ) : (
         <DragDropContext onDragEnd={onDragEnd}>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-stretch flex-1 min-h-0 overflow-hidden">
             {COLUMNS.map((column) => {
               const columnJobs = jobs.filter((j) => j.status === column.id);
 
               return (
-                <div key={column.id} className="rounded-xl border border-border bg-muted/40 p-4">
+                <div key={column.id} className="rounded-xl border border-border bg-muted/40 p-4 flex flex-col h-full max-h-full overflow-hidden">
                   {/* Column Header */}
-                  <div className="flex items-center justify-between mb-4 border-b border-border pb-2">
+                  <div className="flex items-center justify-between mb-4 border-b border-border pb-2 shrink-0">
                     <h3 className="text-sm font-semibold text-foreground tracking-wide">
                       {column.title}
                     </h3>
@@ -228,8 +228,8 @@ function KanbanBoard({ currentUser }) {
                       <div
                         {...provided.droppableProps}
                         ref={provided.innerRef}
-                        className={`space-y-3 min-h-[450px] rounded-lg transition-colors p-1 ${
-                          snapshot.isDraggingOver ? 'bg-slate-900/30' : ''
+                        className={`space-y-3 flex-1 overflow-y-auto rounded-lg transition-colors p-1 min-h-0 ${
+                          snapshot.isDraggingOver ? 'bg-muted/60' : ''
                         }`}
                       >
                         {columnJobs.map((job, index) => {

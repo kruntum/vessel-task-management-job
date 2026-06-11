@@ -156,7 +156,7 @@ function SupervisorDashboard({ currentUser, theme }) {
     .filter((d) => d.value > 0); // only show statuses that have jobs
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-y-auto flex-1 pr-1 h-full max-h-full">
       {/* Header Panel */}
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
         <div>

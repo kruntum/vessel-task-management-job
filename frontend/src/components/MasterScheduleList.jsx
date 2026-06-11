@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useReactTable, getCoreRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table';
-import { Search, Filter, Plus, Calendar, AlertTriangle, Clock, RefreshCw, Layers, CheckCircle2 } from 'lucide-react';
+import { Search, Filter, Plus, Calendar, AlertTriangle, Clock, RefreshCw, Layers, CheckCircle2, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 function MasterScheduleList({ currentUser }) {
@@ -12,6 +12,11 @@ function MasterScheduleList({ currentUser }) {
   const [globalFilter, setGlobalFilter] = useState('');
   const [agentFilter, setAgentFilter] = useState('ALL');
   const [weekFilter, setWeekFilter] = useState('');
+
+  // Pagination states
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(100);
+  const [pageSizeOpen, setPageSizeOpen] = useState(false);
 
   // Modal states for creating Job Card
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -183,11 +188,26 @@ function MasterScheduleList({ currentUser }) {
     });
   }, [schedules, globalFilter, agentFilter, weekFilter]);
 
+  // Reset page index when filters change
+  useEffect(() => {
+    setPageIndex(0);
+  }, [globalFilter, agentFilter, weekFilter]);
+
+  const paginatedData = React.useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filteredData.slice(start, end);
+  }, [filteredData, pageIndex, pageSize]);
+
   const table = useReactTable({
-    data: filteredData,
+    data: paginatedData,
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
+
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
+  const pageStart = filteredData.length === 0 ? 0 : pageIndex * pageSize + 1;
+  const pageEnd = Math.min(filteredData.length, (pageIndex + 1) * pageSize);
 
   // Checklist handler inside Job Creation Form Modal
   const handleAddChecklistItem = () => {
@@ -254,9 +274,9 @@ function MasterScheduleList({ currentUser }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex-1 flex flex-col overflow-hidden h-full">
       {/* Search & Filters Panel */}
-      <div className="rounded-xl border border-border bg-card/30 p-4 backdrop-blur-md shadow-sm">
+      <div className="rounded-xl border border-border bg-card/30 p-4 backdrop-blur-md shadow-sm shrink-0">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             {/* Search Input */}
@@ -307,14 +327,14 @@ function MasterScheduleList({ currentUser }) {
         </div>
       </div>
 
-      {/* Data Table */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-md">
-        <div className="overflow-x-auto">
+      {/* Data Table Container */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-md flex-1 flex flex-col min-h-0">
+        <div className="overflow-auto flex-1">
           <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="border-b border-border bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <tr className="sticky top-0 z-10 border-b border-border shadow-[0_1px_0_0_rgba(0,0,0,0.05)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.02)]">
                 {columns.map((col, index) => (
-                  <th key={index} className="px-6 py-4">{col.header}</th>
+                  <th key={index} className="px-6 py-4 bg-muted/95 text-xs font-semibold uppercase tracking-wider text-muted-foreground align-middle">{col.header}</th>
                 ))}
               </tr>
             </thead>
@@ -336,7 +356,7 @@ function MasterScheduleList({ currentUser }) {
                 table.getRowModel().rows.map((row) => (
                   <tr key={row.id} className="hover:bg-muted/30 transition-colors">
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-6 py-4.5 align-middle text-sm text-foreground">
+                      <td key={cell.id} className="px-6 py-4 align-middle text-sm text-foreground">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
@@ -345,6 +365,87 @@ function MasterScheduleList({ currentUser }) {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Footer */}
+        <div className="border-t border-border px-6 py-3.5 bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0 text-xs text-muted-foreground font-medium select-none">
+          {/* Row count stats */}
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <span>Showing</span>
+            <span className="font-semibold text-foreground">{pageStart}</span>
+            <span>to</span>
+            <span className="font-semibold text-foreground">{pageEnd}</span>
+            <span>of</span>
+            <span className="font-semibold text-foreground">{filteredData.length}</span>
+            <span>rows</span>
+          </div>
+
+          <div className="flex items-center gap-6">
+            {/* Rows per page selector */}
+            <div className="flex items-center gap-2">
+              <span>Rows per page:</span>
+              <div className="relative inline-block text-left">
+                <button
+                  type="button"
+                  onClick={() => setPageSizeOpen(!pageSizeOpen)}
+                  className="flex items-center gap-1 bg-background border border-input rounded-md px-2 py-1 text-xs font-semibold text-foreground hover:bg-accent cursor-pointer transition-colors shadow-sm"
+                >
+                  <span>{pageSize}</span>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+                {pageSizeOpen && (
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={() => setPageSizeOpen(false)} />
+                    <div className="absolute bottom-full mb-1 left-0 z-30 w-20 rounded-md border border-border bg-popover p-1 shadow-md">
+                      {[100, 200, 300, 400].map((size) => (
+                        <button
+                          key={size}
+                          onClick={() => {
+                            setPageSize(size);
+                            setPageIndex(0);
+                            setPageSizeOpen(false);
+                          }}
+                          className={`flex w-full items-center rounded px-2.5 py-1 text-xs font-medium hover:bg-accent hover:text-accent-foreground text-left cursor-pointer ${
+                            pageSize === size ? 'bg-accent text-accent-foreground font-semibold' : ''
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Current page indicator */}
+            <div className="flex items-center gap-1 font-mono">
+              <span>Page</span>
+              <span className="font-semibold text-foreground">{pageIndex + 1}</span>
+              <span>of</span>
+              <span className="font-semibold text-foreground">{totalPages}</span>
+            </div>
+
+            {/* Navigation buttons */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={pageIndex === 0}
+                onClick={() => setPageIndex(pageIndex - 1)}
+                className="p-1.5 rounded border border-border bg-background hover:bg-accent disabled:opacity-50 disabled:hover:bg-background transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                disabled={pageIndex >= totalPages - 1}
+                onClick={() => setPageIndex(pageIndex + 1)}
+                className="p-1.5 rounded border border-border bg-background hover:bg-accent disabled:opacity-50 disabled:hover:bg-background transition-colors cursor-pointer"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

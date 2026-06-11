@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, LayoutDashboard, CheckSquare, ShieldAlert, LogOut, ChevronRight, Menu, X, User, Sun, Moon } from 'lucide-react';
+import { Calendar, LayoutDashboard, CheckSquare, ShieldAlert, LogOut, ChevronRight, Menu, X, User, Sun, Moon, ChevronDown } from 'lucide-react';
 
 function Layout({ activeTab, setActiveTab, currentUser, setCurrentUser, theme, setTheme, children }) {
   const [users, setUsers] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
 
   // Fetch users from backend for role switcher
   useEffect(() => {
@@ -17,9 +18,7 @@ function Layout({ activeTab, setActiveTab, currentUser, setCurrentUser, theme, s
       .catch((err) => console.error('Failed to load users:', err));
   }, [setCurrentUser]);
 
-  const handleUserChange = (event) => {
-    const selectedUsername = event.target.value;
-    const selected = users.find((u) => u.username === selectedUsername);
+  const handleUserChange = (selected) => {
     if (selected) {
       setCurrentUser(selected);
       // Reset view to schedules when changing user to prevent access to hidden tabs
@@ -73,19 +72,41 @@ function Layout({ activeTab, setActiveTab, currentUser, setCurrentUser, theme, s
           <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             Simulate User Role
           </label>
-          <div className="flex items-center gap-2 bg-background border border-input rounded-lg p-2 focus-within:ring-2 focus-within:ring-ring">
-            <User className="h-5 w-5 text-indigo-500 shrink-0" />
-            <select
-              value={currentUser?.username || ''}
-              onChange={handleUserChange}
-              className="w-full bg-transparent text-sm font-medium text-foreground border-none outline-none cursor-pointer focus:ring-0"
+          <div className="relative">
+            <button
+              onClick={() => setIsSelectorOpen(!isSelectorOpen)}
+              className="flex w-full items-center justify-between gap-2 bg-background border border-input rounded-lg p-2.5 text-sm font-medium text-foreground outline-none focus:ring-2 focus:ring-ring transition-all hover:bg-accent/50 cursor-pointer shadow-sm"
             >
-              {users.map((u) => (
-                <option key={u.id} value={u.username} className="bg-card text-foreground">
-                  {u.name} ({u.role})
-                </option>
-              ))}
-            </select>
+              <div className="flex items-center gap-2 truncate">
+                <User className="h-4 w-4 text-indigo-500 shrink-0" />
+                <span className="truncate">{currentUser ? `${currentUser.name} (${currentUser.role})` : 'Select User...'}</span>
+              </div>
+              <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+            </button>
+            
+            {isSelectorOpen && (
+              <>
+                {/* Click outside overlay */}
+                <div className="fixed inset-0 z-30" onClick={() => setIsSelectorOpen(false)} />
+                {/* Floating list */}
+                <div className="absolute left-0 right-0 mt-1.5 z-40 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md max-h-60 overflow-y-auto">
+                  {users.map((u) => (
+                    <button
+                      key={u.id}
+                      onClick={() => {
+                        handleUserChange(u);
+                        setIsSelectorOpen(false);
+                      }}
+                      className={`flex w-full items-center rounded px-2.5 py-2 text-xs font-medium outline-none transition-colors hover:bg-accent hover:text-accent-foreground text-left cursor-pointer ${
+                        currentUser?.username === u.username ? 'bg-accent text-accent-foreground font-semibold' : ''
+                      }`}
+                    >
+                      {u.name} ({u.role})
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -170,8 +191,8 @@ function Layout({ activeTab, setActiveTab, currentUser, setCurrentUser, theme, s
         </header>
 
         {/* Scrollable Container */}
-        <main className="flex-1 overflow-y-auto p-6 bg-background transition-colors duration-200">
-          <div className="mx-auto max-w-7xl">
+        <main className="flex-1 overflow-hidden p-6 bg-background transition-colors duration-200">
+          <div className="mx-auto max-w-7xl h-full flex flex-col">
             {children}
           </div>
         </main>
