@@ -356,7 +356,7 @@ function MasterScheduleList({ currentUser }) {
                 table.getRowModel().rows.map((row) => (
                   <tr key={row.id} className="hover:bg-muted/30 transition-colors">
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-6 py-4 align-middle text-sm text-foreground">
+                      <td key={cell.id} className="px-6 py-6 align-middle text-sm text-foreground">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
