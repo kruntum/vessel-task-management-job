@@ -117,27 +117,39 @@ function MasterScheduleList({ currentUser }) {
         ),
       },
       {
-        header: 'Dates & Status',
+        header: 'Dates (ETD / DPR)',
         cell: ({ row }) => {
           const etd = formatDate(row.original.originalEtd);
           const dpr = formatDate(row.original.actualDpr);
-          const status = getDelayStatus(row.original.originalEtd, row.original.actualDpr);
           return (
-            <div className="flex items-center gap-3">
-              <div className="space-y-0.5 text-xs font-mono">
-                <div><span className="text-muted-foreground/60 mr-1.5">ETD:</span><span className="text-foreground">{etd}</span></div>
-                <div><span className="text-muted-foreground/60 mr-1.5">DPR:</span><span className="text-foreground">{dpr}</span></div>
-              </div>
-              <div className="flex flex-col items-start">
+            <div className="space-y-0.5 text-xs font-mono">
+              <div><span className="text-muted-foreground/60 mr-1.5">ETD:</span><span className="text-foreground">{etd}</span></div>
+              <div><span className="text-muted-foreground/60 mr-1.5">DPR:</span><span className="text-foreground">{dpr}</span></div>
+            </div>
+          );
+        },
+      },
+      {
+        header: 'Status & Free Time',
+        cell: ({ row }) => {
+          const status = getDelayStatus(row.original.originalEtd, row.original.actualDpr);
+          const free = formatDate(row.original.freeTimeStart);
+          return (
+            <div className="space-y-1 text-xs">
+              <div className="flex items-center gap-1.5">
                 <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${status.color}`}>
                   {status.label}
                 </span>
                 {status.days > 0 && (
-                  <span className="text-[9px] text-rose-500 font-mono mt-0.5">+{status.days} d</span>
+                  <span className="text-[9px] text-rose-500 font-mono">+{status.days} d</span>
                 )}
                 {status.days < 0 && (
-                  <span className="text-[9px] text-emerald-500 font-mono mt-0.5">-{Math.abs(status.days)} d</span>
+                  <span className="text-[9px] text-emerald-500 font-mono">-{Math.abs(status.days)} d</span>
                 )}
+              </div>
+              <div className="font-mono">
+                <span className="text-muted-foreground/60 mr-1.5 font-sans">Free:</span>
+                <span className="text-foreground">{free}</span>
               </div>
             </div>
           );
@@ -148,7 +160,6 @@ function MasterScheduleList({ currentUser }) {
         cell: ({ row }) => {
           const closing = formatDate(row.original.closingDate);
           const open = formatDate(row.original.openGate);
-          const free = formatDate(row.original.freeTimeStart);
           return (
             <div className="space-y-0.5 text-xs font-mono">
               <div>
@@ -158,10 +169,6 @@ function MasterScheduleList({ currentUser }) {
               <div>
                 <span className="text-muted-foreground/60 mr-1.5">Gate Open:</span>
                 <span className="text-foreground">{open}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground/60 mr-1.5">Free Time:</span>
-                <span className="text-foreground">{free}</span>
               </div>
             </div>
           );
