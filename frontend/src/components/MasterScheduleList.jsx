@@ -368,7 +368,7 @@ function MasterScheduleList({ currentUser }) {
         </div>
 
         {/* Pagination Footer */}
-        <div className="border-t border-border px-6 py-3.5 bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0 text-xs text-muted-foreground font-medium select-none">
+        <div className="border-t border-border px-6 py-1.5 bg-muted/20 flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0 text-xs text-muted-foreground font-medium select-none">
           {/* Row count stats */}
           <div className="flex items-center gap-1 text-muted-foreground">
             <span>Showing</span>
