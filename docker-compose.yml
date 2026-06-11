@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: logistics_db
+    restart: always
+    environment:
+      POSTGRES_DB: logistics_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5552:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: logistics_backend
+    restart: always
+    ports:
+      - "5550:5000"
+    environment:
+      - PORT=5000
+      - DATABASE_URL=postgresql://postgres:password@db:5432/logistics_db?schema=public
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: logistics_frontend
+    ports:
+      - "5551:3000"
+    environment:
+      - VITE_API_URL=http://localhost:5550
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

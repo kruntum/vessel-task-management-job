@@ -1,0 +1,163 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  SUPERVISOR
+  STAFF
+}
+
+enum JobStatus {
+  PAYMENT
+  SURRENDER_ING
+  FINAL_BL
+  COMPLETE
+}
+
+model User {
+  id        Int      @id @default(autoincrement()) @map("User_ID")
+  username  String   @unique @map("Username")
+  name      String   @map("Name")
+  role      Role     @map("Role")
+  isActive  Boolean  @default(true) @map("Is_Active")
+
+  scheduleLogs ScheduleUpdateLog[]
+  jobCards     JobCard[]
+
+  @@map("users")
+}
+
+model Agent {
+  id        Int      @id @default(autoincrement()) @map("Agent_ID")
+  agentName String   @map("Agent_Name")
+  isActive  Boolean  @default(true) @map("Is_Active")
+
+  schedules      MasterSchedule[]
+  jobCardDetails JobCardDetail[]
+
+  @@map("agents")
+}
+
+model Vessel {
+  id         Int      @id @default(autoincrement()) @map("Vessel_ID")
+  vesselName String   @map("Vessel_Name")
+  isActive   Boolean  @default(true) @map("Is_Active")
+
+  schedules MasterSchedule[]
+
+  @@map("vessels")
+}
+
+model ReturnPlace {
+  id        Int      @id @default(autoincrement()) @map("Place_ID")
+  placeName String   @map("Place_Name")
+  isActive  Boolean  @default(true) @map("Is_Active")
+
+  schedules MasterSchedule[]
+
+  @@map("return_places")
+}
+
+model Pod {
+  id       Int      @id @default(autoincrement()) @map("Pod_ID")
+  name     String   @map("Name")
+  isActive Boolean  @default(true) @map("Is_Active")
+
+  schedules MasterSchedule[]
+
+  @@map("pods")
+}
+
+model Pol {
+  id       Int      @id @default(autoincrement()) @map("Pol_ID")
+  name     String   @map("Name")
+  isActive Boolean  @default(true) @map("Is_Active")
+
+  schedules MasterSchedule[]
+
+  @@map("pols")
+}
+
+model MasterSchedule {
+  id             Int       @id @default(autoincrement()) @map("Schedule_ID")
+  agentId        Int       @map("Agent_ID")
+  vesselId       Int       @map("Vessel_ID")
+  placeId        Int       @map("Place_ID")
+  podId          Int       @map("Pod_ID")
+  polId          Int       @map("Pol_ID")
+  voyage         String    @map("Voyage")
+  service        String    @map("Service")
+  weekNo         Int       @map("Week_No")
+  originalEtd    DateTime  @map("Original_ETD")
+  actualDpr      DateTime? @map("Actual_DPR")
+  delayDays      Int       @default(0) @map("Delay_Days")
+  closingDate    DateTime  @map("Closing_Date")
+  closingTime    String    @map("Closing_Time")
+  openGate       DateTime? @map("Open_Gate")
+  freeTimeStart  DateTime? @map("Free_Time_Start")
+  note           String?   @map("Note")
+
+  agent          Agent        @relation(fields: [agentId], references: [id])
+  vessel         Vessel       @relation(fields: [vesselId], references: [id])
+  returnPlace    ReturnPlace  @relation(fields: [placeId], references: [id])
+  pod            Pod          @relation(fields: [podId], references: [id])
+  pol            Pol          @relation(fields: [polId], references: [id])
+
+  scheduleLogs   ScheduleUpdateLog[]
+  jobCards       JobCard[]
+
+  @@map("master_schedules")
+}
+
+model ScheduleUpdateLog {
+  id           Int       @id @default(autoincrement()) @map("Log_ID")
+  scheduleId   Int       @map("Schedule_ID")
+  userId       Int       @map("User_ID")
+  oldActualDpr DateTime? @map("Old_Actual_DPR")
+  newActualDpr DateTime? @map("New_Actual_DPR")
+  reason       String    @map("Reason")
+  updatedAt    DateTime  @default(now()) @map("Updated_At")
+
+  schedule     MasterSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [userId], references: [id])
+
+  @@map("schedule_update_logs")
+}
+
+model JobCard {
+  id          Int       @id @default(autoincrement()) @map("Job_ID")
+  scheduleId  Int       @map("Schedule_ID")
+  userId      Int       @map("User_ID")
+  totalSets   Int       @default(0) @map("Total_Sets")
+  status      JobStatus @default(PAYMENT) @map("Status")
+  statusBill  Boolean   @default(false) @map("Status_Bill")
+  createdAt   DateTime  @default(now()) @map("Created_At")
+  completedAt DateTime? @map("Completed_At")
+
+  schedule    MasterSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [userId], references: [id])
+  details     JobCardDetail[]
+
+  @@map("job_cards")
+}
+
+model JobCardDetail {
+  id           Int      @id @default(autoincrement()) @map("Detail_ID")
+  jobId        Int      @map("Job_ID")
+  agentId      Int      @map("Agent_ID")
+  customerName String   @map("Customer_Name")
+  bookingNo    String   @map("Booking_No")
+  setsCount    Int      @map("Sets_Count")
+  isChecked    Boolean  @default(false) @map("Is_Checked")
+
+  jobCard      JobCard  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  agent        Agent    @relation(fields: [agentId], references: [id])
+
+  @@map("job_card_details")
+}
